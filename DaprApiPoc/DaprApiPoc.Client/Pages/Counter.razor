@@ -1,0 +1,102 @@
+﻿@page "/counter"
+@using Shared.Services.Models.Weather
+@attribute [Authorize]
+@rendermode InteractiveAuto
+@inject HttpClient http
+
+<PageTitle>Counter</PageTitle>
+
+<p>Hello @Username!</p>
+
+<div>
+
+</div>
+
+@* <div>
+    <p>&nbsp;</p>
+    <button class="btn btn-primary" @onclick="CallInternalApi">Call Internal API</button>
+    <p>@ApiResponse</p>
+</div> *@
+
+<div>
+    <p>&nbsp;</p>
+    <button class="btn btn-primary" @onclick="CallExternalApi">Call External API - Anonymous</button>
+    @if (ExternalApiResponse is not null)
+    {
+        foreach (var forecast in ExternalApiResponse)
+        {
+            <p>Date: @forecast.Date</p>
+            <p>Temp (C): @forecast.TemperatureC</p>
+            <p>Temp (F): @forecast.TemperatureF</p>
+            <p>Summary: @forecast.Summary</p>
+        }
+    }
+</div>
+
+<div>
+    <p>&nbsp;</p>
+    <button class="btn btn-primary" @onclick="CallExternalAuthApi">Call External API - Authenticated</button>
+    @if (AuthExternalApiResponse is not null)
+    {
+        foreach (var forecast in AuthExternalApiResponse)
+        {
+            <p>Date: @forecast.Date</p>
+            <p>Temp (C): @forecast.TemperatureC</p>
+            <p>Temp (F): @forecast.TemperatureF</p>
+            <p>Summary: @forecast.Summary</p>
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState>? authenticationState { get; set; }
+
+    private string Username = "";
+    private string ApiResponse = "";
+    private WeatherForecast[]? ExternalApiResponse = null;
+    private WeatherForecast[]? AuthExternalApiResponse = null;
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (authenticationState is not null)
+        {
+            var state = await authenticationState;
+            Username = state?.User?.Identity?.Name ?? string.Empty;
+        }
+
+        await base.OnInitializedAsync();
+    }
+
+    private async Task CallExternalApi()
+    {
+        try
+        {
+            var data = await http.GetFromJsonAsync<WeatherForecast[]>("api/externalData");
+            ExternalApiResponse = data;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    private async Task CallExternalAuthApi() 
+    {
+        try
+        {
+            var data = await http.GetFromJsonAsync<WeatherForecast[]>("api/externalDataAuth");
+            AuthExternalApiResponse = data;
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine(ex.Message);
+        }
+    }
+
+    // private async Task CallInternalApi()
+    // {
+    //     var data = await http.GetFromJsonAsync<int[]>("api/internalData");
+    //     ApiResponse = $"This data comes from an internal API: {string.Join(",", data)}";
+    // }
+}
